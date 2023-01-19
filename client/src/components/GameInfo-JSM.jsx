@@ -1,17 +1,32 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import { CustomButton } from '.';
+import CustomButton from './CustomButton';
 import { useGlobalContext } from '../context';
 import { alertIcon, gameRules } from '../assets';
 import styles from '../styles';
 
 const GameInfo = () => {
-  const { contract, gameData, setShowAlert } = useGlobalContext();
+  const { contract, gameData, setErrorMessage, setShowAlert } =
+    useGlobalContext();
   const [toggleSidebar, setToggleSidebar] = useState(false);
   const navigate = useNavigate();
 
-  const handleBattleExit = async () => {};
+  const handleBattleExit = async () => {
+    const battleName = gameData.activeBattle.name;
+
+    try {
+      await contract.quitBattle(battleName);
+
+      setShowAlert({
+        status: true,
+        type: 'info',
+        message: `You're quitting the ${battleName}`,
+      });
+    } catch (error) {
+      setErrorMessage(error);
+    }
+  };
 
   return (
     <>
@@ -43,7 +58,7 @@ const GameInfo = () => {
 
           <div className="mt-3">
             {gameRules.map((rule, index) => (
-              <p key={`game-rule-index`} className={styles.gameInfoText}>
+              <p key={`game-rule-${index}`} className={styles.gameInfoText}>
                 <span className="font-bold">{index + 1}</span>. {rule}
               </p>
             ))}
@@ -55,8 +70,10 @@ const GameInfo = () => {
             title="Change Battleground"
             handleClick={() => navigate('/battleground')}
           />
-
-          <CustomButton title="Exit Battle" handleClick={handleBattleExit} />
+          <CustomButton
+            title="Exit Battle"
+            handleClick={() => handleBattleExit()}
+          />
         </div>
       </div>
     </>
