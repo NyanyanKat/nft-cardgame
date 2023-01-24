@@ -11,6 +11,7 @@ import { useNavigate } from 'react-router-dom';
 
 import { ABI, ADDRESS } from '../contract';
 import { createEventListeners } from './createEventListeners';
+import { GetParams } from '../utils/onboard';
 
 const GlobalContext = createContext();
 
@@ -32,8 +33,39 @@ export const GlobalContextProvider = ({ children }) => {
 
   const [updateGameData, setUpdateGameData] = useState(0);
   const [battleground, setBattleground] = useState('bg-astral');
+  const [step, setStep] = useState(1);
+  const [errorMessage, setErrorMessage] = useState('');
+
+  const player1Ref = useRef();
+  const player2Ref = useRef();
 
   const navigate = useNavigate();
+
+  // Persist battleground from local storage
+  useEffect(() => {
+    const battlegroundFromLocalStorage = localStorage.getItem('battleground');
+
+    if (battlegroundFromLocalStorage) {
+      setBattleground(battlegroundFromLocalStorage);
+    } else {
+      localStorage.setItem('battleground', battleground);
+    }
+  }, []);
+
+  //* Reset web3 onboarding modal params
+  useEffect(() => {
+    const resetParams = async () => {
+      const currentStep = await GetParams();
+
+      setStep(currentStep.step);
+    };
+
+    resetParams();
+
+    // automated step to reset modal params when receiving funds or change accounts
+    window?.ethereum?.on('chainChanged', () => resetParams());
+    window?.ethereum?.on('accountsChanged', () => resetParams());
+  }, []);
 
   //* Set the wallet address to the state
   const updateCurrentWalletAddress = async () => {
@@ -70,7 +102,7 @@ export const GlobalContextProvider = ({ children }) => {
   }, []);
 
   useEffect(() => {
-    if (contract) {
+    if (step !== -1 && contract) {
       createEventListeners({
         navigate,
         contract,
@@ -78,9 +110,11 @@ export const GlobalContextProvider = ({ children }) => {
         walletAddress,
         setShowAlert,
         setUpdateGameData,
+        player1Ref,
+        player2Ref,
       });
     }
-  }, [contract]);
+  }, [contract, step]);
 
   useEffect(() => {
     if (showAlert?.status) {
@@ -91,6 +125,25 @@ export const GlobalContextProvider = ({ children }) => {
       return () => clearTimeout(timer);
     }
   }, [showAlert]);
+
+  //* Handle error messages
+  useEffect(() => {
+    if (errorMessage) {
+      // "execution reverted: this is an error message"
+      // parsedErrorMessage => this is an error message
+      const parsedErrorMessage = errorMessage?.reason
+        ?.slice('execution reverted: '.length)
+        .slice(0, -1);
+
+      if (parsedErrorMessage) {
+        setShowAlert({
+          status: true,
+          type: 'failure',
+          message: parsedErrorMessage,
+        });
+      }
+    }
+  }, [errorMessage]);
 
   // Set the game data to the state
   useEffect(() => {
@@ -133,6 +186,10 @@ export const GlobalContextProvider = ({ children }) => {
         gameData,
         battleground,
         setBattleground,
+        errorMessage,
+        setErrorMessage,
+        player1Ref,
+        player2Ref,
       }}
     >
       {children}

@@ -4,11 +4,14 @@ import { BrowserRouter, Route, Routes } from 'react-router-dom';
 
 import { Home, CreateBattle, JoinBattle, Battle, Battleground } from './page';
 import { GlobalContextProvider } from './context';
+
+import { OnBoardModal } from './components';
 import './index.css';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <BrowserRouter>
     <GlobalContextProvider>
+      <OnBoardModal />
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/create-battle" element={<CreateBattle />} />
