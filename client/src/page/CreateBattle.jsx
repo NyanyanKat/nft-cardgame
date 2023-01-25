@@ -27,7 +27,9 @@ const CreateBattle = () => {
 
     // otherwise, create battle with contract and wait for player to join
     try {
-      await contract.createBattle(battleName);
+      await contract.createBattle(battleName, {
+        gasLimit: 200000,
+      });
 
       setWaitBattle(true);
     } catch (error) {
